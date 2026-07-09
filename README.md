@@ -1,5 +1,4 @@
 # uas-commproto-kelompok-6
-# UAS Communication Protocol - API Ingestion Dataset
 
 Repositori ini dibuat untuk memenuhi tugas Ujian Akhir Semester (UAS) Genap T.A. 2025/2026 pada program studi Sains Data, Universitas Cakrawala. Project ini mengimplementasikan protokol komunikasi REST API untuk melakukan ingestion data (dataset skala kecil) yang dilengkapi dengan pengujian automated, analisis trafik, serta pemantauan log (observability).
 
