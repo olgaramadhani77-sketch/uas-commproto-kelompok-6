@@ -1,0 +1,473 @@
+{
+  "info": {
+    "_postman_id": "aeaf7c41-261e-46d8-acc3-4cd2f5a80f91",
+    "name": "UAS Kelompok - API Ingestion Dataset (Use Case 1)",
+    "description": "Postman Collection untuk UAS Communication Protocol - Use Case 1: API Ingestion Dataset. Menguji endpoint REST /api/products sebagai representasi ingestion dataset kecil: penerimaan data, validasi, dan response. Mencakup 2 success scenario dan 2 failure scenario sesuai requirement minimum UAS.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "55061738",
+    "_collection_link": "https://go.postman.co/collection/55061738-aeaf7c41-261e-46d8-acc3-4cd2f5a80f91?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "00 - Setup",
+      "item": [
+        {
+          "name": "Reset Demo Data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has reset message', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.message).to.include('reset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reset",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reset"
+              ]
+            },
+            "description": "Reset dataset ke kondisi awal (seed) sebelum menjalankan skenario ingestion, supaya demo bisa diulang tanpa konflik ID/data lama."
+          },
+          "response": []
+        },
+        {
+          "name": "GET All Products (Baseline Dataset)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has data array', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    pm.expect(body).to.have.property('count');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "Melihat isi dataset produk saat ini sebagai baseline sebelum proses ingestion baru dilakukan."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Success Scenario",
+      "item": [
+        {
+          "name": "SUCCESS 1 - Ingest Valid Dataset Record (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Response contains created record with id', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.name).to.eql('IoT Temperature Sensor');",
+                  "    pm.collectionVariables.set('created_product_id', body.id);",
+                  "});",
+                  "pm.test('Response has Location header', function () {",
+                  "    pm.response.to.have.header('Location');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"IoT Temperature Sensor\",\n  \"category\": \"iot-device\",\n  \"price\": 185000,\n  \"stock\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "Skenario sukses: mengirim satu record dataset (produk IoT) dengan seluruh field wajib terisi (name, category, price, stock). Server melakukan validasi lalu menyimpan dan mengembalikan record baru beserta ID."
+          },
+          "response": []
+        },
+        {
+          "name": "SUCCESS 2 - Retrieve Ingested Record (GET by ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retrieved record matches ingested data', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.name).to.eql('IoT Temperature Sensor');",
+                  "    pm.expect(body.category).to.eql('iot-device');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{created_product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{created_product_id}}"
+              ]
+            },
+            "description": "Skenario sukses: mengambil kembali record dataset yang baru saja berhasil di-ingest, menggunakan ID yang didapat dari response sebelumnya (verifikasi end-to-end bahwa data benar-benar tersimpan)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Failure Scenario",
+      "item": [
+        {
+          "name": "ERROR 1 - Ingest Rejected: Missing Required Field",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error response identifies missing fields', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql('Missing required fields');",
+                  "    pm.expect(body.missing).to.include('price');",
+                  "    pm.expect(body.missing).to.include('stock');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Incomplete Sensor Record\",\n  \"category\": \"iot-device\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "Skenario gagal: mengirim record dataset tanpa field wajib 'price' dan 'stock'. Server harus menolak ingestion dan mengembalikan error contract yang jelas berisi daftar field yang hilang."
+          },
+          "response": []
+        },
+        {
+          "name": "ERROR 2 - Retrieve Non-Existent Record (GET by Invalid ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error response identifies resource not found', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.error).to.eql('Product not found');",
+                  "    pm.expect(body.id).to.eql(999999);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "999999"
+              ]
+            },
+            "description": "Skenario gagal: mencoba mengambil record dataset dengan ID yang tidak pernah ada. Server harus mengembalikan 404 dengan error contract yang konsisten."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Observability Evidence",
+      "item": [
+        {
+          "name": "GET Observability Logs (Correlation Evidence)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/observability/logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "observability",
+                "logs"
+              ]
+            },
+            "description": "Bukti observability: menampilkan log request yang sudah terjadi, dipakai sebagai evidence tambahan untuk correlation/request tracking pada laporan UAS."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Observability Metrics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/observability/metrics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "observability",
+                "metrics"
+              ]
+            },
+            "description": "Bukti observability: metrics request count/error rate yang bisa dilaporkan sebagai bagian dari reliability & observability evidence."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - n8n ingestion",
+      "item": [
+        {
+          "name": "n8n SUCCESS - Trigger Ingestion via Webhook (Valid Record)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 from n8n Respond Success', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Workflow took TRUE branch', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.workflowBranch).to.eql('TRUE_BRANCH_SUCCESS');",
+                  "    pm.expect(body.executedNode).to.eql('Build Success Response');",
+                  "    pm.expect(body.backendStatusCode).to.be.below(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"kelompok-xx\",\n  \"name\": \"Air Quality Sensor\",\n  \"category\": \"iot-device\",\n  \"price\": 210000,\n  \"stock\": 15\n}"
+            },
+            "url": {
+              "raw": "{{n8n_webhook_url}}",
+              "host": [
+                "{{n8n_webhook_url}}"
+              ]
+            },
+            "description": "Mengirim dataset record lengkap ke webhook n8n. n8n akan meneruskan ke POST /api/products, backend merespons 201, workflow masuk TRUE_BRANCH_SUCCESS, dan Postman menerima balasan 201 dari n8n (Respond Success)."
+          },
+          "response": []
+        },
+        {
+          "name": "n8n ERROR - Trigger Ingestion via Webhook (Missing Fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 from n8n Respond Error', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Workflow took FALSE branch', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.workflowBranch).to.eql('FALSE_BRANCH_ERROR');",
+                  "    pm.expect(body.executedNode).to.eql('Build Error Response');",
+                  "    pm.expect(body.backendStatusCode).to.be.at.least(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"kelompok-xx\",\n  \"name\": \"Incomplete Sensor Record\",\n  \"category\": \"iot-device\"\n}"
+            },
+            "url": {
+              "raw": "{{n8n_webhook_url}}",
+              "host": [
+                "{{n8n_webhook_url}}"
+              ]
+            },
+            "description": "Mengirim dataset record tanpa 'price' dan 'stock' ke webhook n8n. Backend menolak dengan 400, workflow masuk FALSE_BRANCH_ERROR, dan Postman menerima balasan 400 dari n8n (Respond Error)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8088"
+    },
+    {
+      "key": "created_product_id",
+      "value": ""
+    },
+    {
+      "key": "n8n_webhook_url",
+      "value": ""
+    }
+  ]
+}
