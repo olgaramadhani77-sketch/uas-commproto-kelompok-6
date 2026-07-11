@@ -1,0 +1,439 @@
+{
+  "name": "UAS - API Ingestion Dataset Workflow  Kel 6",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "commproto-ingestion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "37c1efe2-a332-4f91-b676-c688cca47e6a",
+      "name": "Webhook - Dataset Ingestion",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        128
+      ],
+      "webhookId": "commproto-ingestion"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "clientId",
+              "name": "clientId",
+              "value": "={{ $json.body?.clientId || $json.clientId || 'demo-client' }}",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $json.body?.name || $json.name || 'Unnamed Dataset Record' }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $json.body?.category || $json.category || 'uncategorized' }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $json.body?.timestamp || $json.timestamp || $now }}",
+              "type": "string"
+            },
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "Use Case 1 - API Ingestion Dataset",
+              "type": "string"
+            },
+            {
+              "id": "rpsMapping",
+              "name": "rpsMapping",
+              "value": "API Contract, Endpoint Design, Status Code, Error Contract, Postman Collection, Workflow Integration (n8n)",
+              "type": "string"
+            },
+            {
+              "id": "demoNote",
+              "name": "demoNote",
+              "value": "Client/Postman triggers n8n webhook with a dataset record; n8n forwards the record to the backend ingestion API (/api/products); IF node routes success/error based on backendStatusCode.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2c67ca55-d2d3-4c29-90c4-12d6458b585a",
+      "name": "Normalize Dataset Record",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -720,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8088/api/products",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.fromEntries(Object.entries($('Webhook - Dataset Ingestion').item.json.body || {}).filter(([k]) => ['name','category','price','stock'].includes(k)))) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "632e8d3d-2602-47b1-817a-71eb2ba8eec2",
+      "name": "Call Ingestion API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -480,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.statusCode }}",
+              "value2": 400
+            }
+          ]
+        }
+      },
+      "id": "0edad440-a15b-4ab6-a1b9-09b5af768099",
+      "name": "Check Status Code < 400",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "workflowResult",
+              "name": "workflowResult",
+              "value": "INGESTED",
+              "type": "string"
+            },
+            {
+              "id": "workflowBranch",
+              "name": "workflowBranch",
+              "value": "TRUE_BRANCH_SUCCESS",
+              "type": "string"
+            },
+            {
+              "id": "executedNode",
+              "name": "executedNode",
+              "value": "Build Success Response",
+              "type": "string"
+            },
+            {
+              "id": "ifDecision",
+              "name": "ifDecision",
+              "value": "backendStatusCode < 400",
+              "type": "string"
+            },
+            {
+              "id": "clientId",
+              "name": "clientId",
+              "value": "={{ $('Normalize Dataset Record').item.json.clientId }}",
+              "type": "string"
+            },
+            {
+              "id": "datasetRecordName",
+              "name": "datasetRecordName",
+              "value": "={{ $('Normalize Dataset Record').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "name": "category",
+              "value": "={{ $('Normalize Dataset Record').item.json.category }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $('Normalize Dataset Record').item.json.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "backendStatusCode",
+              "name": "backendStatusCode",
+              "value": "={{ $('Call Ingestion API').item.json.statusCode || $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "ingestedId",
+              "name": "ingestedId",
+              "value": "={{ $('Call Ingestion API').item.json.body?.id }}",
+              "type": "number"
+            },
+            {
+              "id": "backendMessage",
+              "name": "backendMessage",
+              "value": "={{ $('Call Ingestion API').item.json.body?.message || 'Dataset record ingested and stored successfully' }}",
+              "type": "string"
+            },
+            {
+              "id": "teachingPoint",
+              "name": "teachingPoint",
+              "value": "Status < 400 means the ingestion API accepted, validated, and stored the dataset record.",
+              "type": "string"
+            },
+            {
+              "id": "evidenceMessage",
+              "name": "evidenceMessage",
+              "value": "Workflow hit TRUE branch and executed Build Success Response because backendStatusCode is below 400.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5006ddd1-9753-4724-8002-93a34b8052a2",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "81573832-70c5-4434-a442-4ac68c1b58ed",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "workflowResult",
+              "name": "workflowResult",
+              "value": "REJECTED",
+              "type": "string"
+            },
+            {
+              "id": "workflowBranch",
+              "name": "workflowBranch",
+              "value": "FALSE_BRANCH_ERROR",
+              "type": "string"
+            },
+            {
+              "id": "executedNode",
+              "name": "executedNode",
+              "value": "Build Error Response",
+              "type": "string"
+            },
+            {
+              "id": "ifDecision",
+              "name": "ifDecision",
+              "value": "backendStatusCode >= 400",
+              "type": "string"
+            },
+            {
+              "id": "clientId",
+              "name": "clientId",
+              "value": "={{ $('Normalize Dataset Record').item.json.clientId }}",
+              "type": "string"
+            },
+            {
+              "id": "datasetRecordName",
+              "name": "datasetRecordName",
+              "value": "={{ $('Normalize Dataset Record').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ $('Normalize Dataset Record').item.json.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "backendStatusCode",
+              "name": "backendStatusCode",
+              "value": "={{ $('Call Ingestion API').item.json.statusCode || $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "backendMessage",
+              "name": "backendMessage",
+              "value": "={{ $('Call Ingestion API').item.json.body?.error || 'Missing required fields' }}",
+              "type": "string"
+            },
+            {
+              "id": "missingFields",
+              "name": "missingFields",
+              "value": "={{ $('Call Ingestion API').item.json.body?.missing }}",
+              "type": "string"
+            },
+            {
+              "id": "teachingPoint",
+              "name": "teachingPoint",
+              "value": "400 means the ingestion API rejected the dataset record due to invalid or missing required fields.",
+              "type": "string"
+            },
+            {
+              "id": "suggestion",
+              "name": "suggestion",
+              "value": "Check required fields (name, category, price, stock) before retrying ingestion. Send a payload missing 'price' and 'stock' to reproduce this branch.",
+              "type": "string"
+            },
+            {
+              "id": "evidenceMessage",
+              "name": "evidenceMessage",
+              "value": "Workflow hit FALSE branch and executed Build Error Response because backend API returned a status code greater than or equal to 400.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a4016a8f-1642-453e-a5b1-2908bdef0d74",
+      "name": "Build Error Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "6cf95511-177a-4ccc-ba19-fd55630b544b",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        240
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Dataset Ingestion": {
+      "main": [
+        [
+          {
+            "node": "Normalize Dataset Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Dataset Record": {
+      "main": [
+        [
+          {
+            "node": "Call Ingestion API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ingestion API": {
+      "main": [
+        [
+          {
+            "node": "Check Status Code < 400",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status Code < 400": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4627a0ef-926f-4cd6-8665-75e6dc6a0d2f",
+  "meta": {
+    "instanceId": "abcad0f56113b698bcdd7d8ca11c3808079f57ad915f08e094a5999077ccf80d"
+  },
+  "nodeGroups": [],
+  "id": "OiB0m3ItEWADAP2b",
+  "tags": []
+}
